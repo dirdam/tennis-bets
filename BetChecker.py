@@ -6,7 +6,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-from tqdm import tqdm
 import pandas as pd
 import streamlit as st
 
@@ -58,7 +57,7 @@ class BetChecker():
         last_tournament = ''
         last_category = ''
         today = datetime.today().date()
-        for i, row in tqdm(enumerate(rows)):
+        for i, row in enumerate(rows):
             my_bar.progress((i+1)/len(rows), text=f'{progress_text} ({i+1}/{len(rows)})') # Update progress bar
             # Tournament info
             try:
@@ -116,7 +115,7 @@ class BetChecker():
             WebDriverWait(self.browser, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="u868"]/tbody')))
             table = self.browser.find_element('xpath', '//*[@id="u868"]/tbody')
             rows = table.find_elements('xpath', './/tr')
-            for i, row in tqdm(enumerate(rows)):
+            for i, row in enumerate(rows):
                 my_bar.progress((i+1)/len(rows), text=f'{progress_text} ({i+1}/{len(rows)})') # Update progress bar
                 try:
                     player = row.find_element('xpath', './/td[4]').text

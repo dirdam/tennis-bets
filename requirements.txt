@@ -1,4 +1,3 @@
 selenium
 seleniumbase
-tqdm
 webdriver-manager
