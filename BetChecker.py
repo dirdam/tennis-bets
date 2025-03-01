@@ -1,6 +1,4 @@
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
@@ -10,10 +8,8 @@ from tqdm import tqdm
 import pandas as pd
 import streamlit as st
 
-def action_xpath(browser, xpath, action, others='', wait=60):
+def action_xpath(browser, xpath, action, others=''):
     others = '' if others == '' else "'''" + others + "'''"
-    if wait > 0:
-        WebDriverWait(browser, wait).until(EC.presence_of_element_located((By.XPATH, xpath)))
     eval(f"browser.find_element('xpath', '{xpath}').{action}({others})")
 
 def remove_accents(input_str):
@@ -111,7 +107,6 @@ class BetChecker():
             my_bar = st.progress(0, text=progress_text) # Initialize progress bar
             print(progress_text)
             self.browser.get(f'https://live-tennis.eu/en/{type}-live-ranking')
-            WebDriverWait(self.browser, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="u868"]/tbody')))
             table = self.browser.find_element('xpath', '//*[@id="u868"]/tbody')
             rows = table.find_elements('xpath', './/tr')
             for i, row in tqdm(enumerate(rows)):
