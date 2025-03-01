@@ -10,7 +10,7 @@ from tqdm import tqdm
 import pandas as pd
 import streamlit as st
 
-def action_xpath(browser, xpath, action, others='', wait=10):
+def action_xpath(browser, xpath, action, others='', wait=60):
     others = '' if others == '' else "'''" + others + "'''"
     if wait > 0:
         WebDriverWait(browser, wait).until(EC.presence_of_element_located((By.XPATH, xpath)))
