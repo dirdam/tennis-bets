@@ -3,7 +3,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import ChromeType
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from tqdm import tqdm
@@ -30,12 +29,13 @@ class BetChecker():
 
     def open_browser(self):
         options = Options()
+        options.add_argument('--disable-gpu')
         if self.headless:
             options.add_argument("--headless")
             options.add_argument(
                 "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             )
-        service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()) # Service(ChromeDriverManager().install())
+        service = Service(ChromeDriverManager().install()) # Service(ChromeDriverManager().install())
         self.browser = webdriver.Chrome(service=service, options=options)
         self.browser.maximize_window()
 
@@ -46,6 +46,7 @@ class BetChecker():
         """Gets all upcoming fixtures from TNNS"""
         from datetime import datetime
         progress_text = 'Getting fixtures...'
+        my_bar = st.progress(0, text=progress_text) # Initialize progress bar
         print(progress_text)
         self.browser.get('https://tnnslive.com/')
         action_xpath(self.browser, '//*[@id="root"]/div/div/div/div/div/div/div/div[2]/div[2]/div/div/div/div/div[2]/div[2]/div/div[1]/div/div[1]/div/div/div/div[2]/div/div[1]/div[2]/div/div/div[4]/div/div', 'click')
@@ -55,7 +56,6 @@ class BetChecker():
         last_tournament = ''
         last_category = ''
         today = datetime.today().date()
-        my_bar = st.progress(0, text=progress_text) # Initialize progress bar
         for i, row in tqdm(enumerate(rows)):
             my_bar.progress((i+1)/len(rows), text=f'{progress_text} ({i+1}/{len(rows)})') # Update progress bar
             # Tournament info
@@ -108,12 +108,12 @@ class BetChecker():
         players = []
         for type in ['atp', 'wta']:
             progress_text = f'Getting {type.upper()} rankings...'
+            my_bar = st.progress(0, text=progress_text) # Initialize progress bar
             print(progress_text)
             self.browser.get(f'https://live-tennis.eu/en/{type}-live-ranking')
             WebDriverWait(self.browser, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="u868"]/tbody')))
             table = self.browser.find_element('xpath', '//*[@id="u868"]/tbody')
             rows = table.find_elements('xpath', './/tr')
-            my_bar = st.progress(0, text=progress_text) # Initialize progress bar
             for i, row in tqdm(enumerate(rows)):
                 my_bar.progress((i+1)/len(rows), text=f'{progress_text} ({i+1}/{len(rows)})') # Update progress bar
                 try:
