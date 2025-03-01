@@ -1,4 +1,6 @@
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
@@ -8,8 +10,10 @@ from tqdm import tqdm
 import pandas as pd
 import streamlit as st
 
-def action_xpath(browser, xpath, action, others=''):
+def action_xpath(browser, xpath, action, others='', wait=20):
     others = '' if others == '' else "'''" + others + "'''"
+    if wait > 0:
+        WebDriverWait(browser, wait).until(EC.presence_of_element_located((By.XPATH, xpath)))
     eval(f"browser.find_element('xpath', '{xpath}').{action}({others})")
 
 def remove_accents(input_str):
@@ -27,11 +31,14 @@ class BetChecker():
     def open_browser(self):
         options = Options()
         if self.headless:
+            print('Headless mode activated')
             options.add_argument("--headless")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
             options.add_argument(
                 "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             )
-        service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()) # Service(ChromeDriverManager().install())
+        service = Service(ChromeDriverManager().install())
         self.browser = webdriver.Chrome(service=service, options=options)
         self.browser.maximize_window()
 
@@ -107,6 +114,7 @@ class BetChecker():
             my_bar = st.progress(0, text=progress_text) # Initialize progress bar
             print(progress_text)
             self.browser.get(f'https://live-tennis.eu/en/{type}-live-ranking')
+            WebDriverWait(self.browser, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="u868"]/tbody')))
             table = self.browser.find_element('xpath', '//*[@id="u868"]/tbody')
             rows = table.find_elements('xpath', './/tr')
             for i, row in tqdm(enumerate(rows)):
