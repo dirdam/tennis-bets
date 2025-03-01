@@ -30,6 +30,7 @@ class BetChecker():
 
     def open_browser(self):
         options = Options()
+        print('HHHH')
         if self.headless:
             print('Headless mode activated')
             options.add_argument("--headless")
