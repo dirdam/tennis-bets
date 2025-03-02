@@ -1,3 +1,4 @@
+import streamlit as st
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -7,7 +8,6 @@ from webdriver_manager.core.os_manager import ChromeType
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 import pandas as pd
-import streamlit as st
 
 def action_xpath(browser, xpath, action, others='', wait=20):
     others = '' if others == '' else "'''" + others + "'''"
@@ -37,14 +37,16 @@ class BetChecker():
             options.add_argument(
                 "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             )
-        service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()) # Service(ChromeDriverManager().install())
+        # service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()) # Service(ChromeDriverManager().install())
+        service = Service(ChromeDriverManager().install())
         self.browser = webdriver.Chrome(service=service, options=options)
         self.browser.maximize_window()
 
     def close_browser(self):
         self.browser.quit()
 
-    def get_fixtures(self):
+    def get_fixtures_old(self):
+        """OLD: removed because click is not properly handled in Streamlit"""
         """Gets all upcoming fixtures from TNNS"""
         from datetime import datetime
         progress_text = 'Getting fixtures...'
@@ -70,7 +72,6 @@ class BetChecker():
             except:
                 pass
 
-                
             # Match details
             player_names = []
             try:
@@ -101,9 +102,43 @@ class BetChecker():
         self.fixtures = pd.DataFrame(data)
         self.fixtures['Time'] = pd.to_datetime(self.fixtures['Time'], format='%Y-%m-%d %I:%M%p')
 
-    def show_fixtures(self):
-        """Returns all upcoming fixtures"""
-        return self.fixtures
+    def get_fixtures(self, next_hours=24):
+        """Gets all upcoming fixtures from the backend of TNNS"""
+        import requests
+        from datetime import datetime, timezone, timedelta
+        progress_text = 'Getting fixtures...'
+        print(progress_text)
+        st.write(progress_text)
+        url = "https://gen2-matches-daily-web-ysvbugl7mq-uc.a.run.app/"
+        # Fetch the JSON data
+        response = requests.get(url)
+        # Check if the request was successful
+        if response.status_code == 200:
+            data = response.json()  # Parse JSON
+        else:
+            st.error(f"Failed to fetch data: {response.status_code}")
+            return
+        
+        # Create DataFrame
+        tournaments = data['sids']
+        matches = data['all_matches']
+        matches = [match for match in matches if 'finishedAt' not in match]
+        df = pd.DataFrame(matches)
+        df['Tournament'] = df['sid'].apply(lambda x: tournaments[str(x)]['t'])
+        df['Category+Surface'] = df['sid'].apply(lambda x: tournaments[str(x)]['su'])
+        df['Category'] = df['Category+Surface'].apply(lambda x: x.split(' · ')[0])
+        df['Surface'] = df['Category+Surface'].apply(lambda x: x.split(' · ')[-1])
+        df['Player1'] = df['p'].apply(lambda x: x[0]['n'])
+        df['Player2'] = df['p'].apply(lambda x: x[1]['n'])
+        df['Time'] = df['start_time_timestamp'].apply(lambda x: datetime.fromtimestamp(int(x)/1000, tz=timezone.utc) + timedelta(hours=9)) # Japan time
+        df['Time'] = df['Time'].dt.tz_localize(None)
+        df['Round'] = df['d_st'].apply(lambda x: x['s'] if isinstance(x, dict) else None)
+        df['Odd1'] = df['od'].apply(lambda x: x['o'][0]).astype(float).fillna(0)
+        df['Odd2'] = df['od'].apply(lambda x: x['o'][1]).astype(float).fillna(0)
+        df = df[['Tournament', 'Category', 'Surface', 'Player1', 'Player2', 'Odd1', 'Odd2', 'Time', 'Round']]
+        # Restrict to times within 24 hours
+        df = df[df['Time'] < datetime.now() + timedelta(hours=next_hours)]
+        self.fixtures = df
     
     def add_rank(self):
         """Adds the ATP/WTA rank and points of each player"""
@@ -138,29 +173,28 @@ class BetChecker():
         self.fixtures['Points1'] = self.fixtures['Player1'].apply(lambda x: players[players['Player'] == x]['Points'].values[0] if x in players['Player'].values else 0)
         self.fixtures['Points2'] = self.fixtures['Player2'].apply(lambda x: players[players['Player'] == x]['Points'].values[0] if x in players['Player'].values else 0)
 
-    def sort_fixtures(self, high_threshold=2000, low_threshold=1000):
-        """Sorts the fixtures by highest points"""
-        # Add 'bettable' column
-        self.fixtures['Highest Points'] = self.fixtures[['Points1', 'Points2']].max(axis=1)
-        self.fixtures['Lowest Points'] = self.fixtures[['Points1', 'Points2']].min(axis=1)
-        self.fixtures['Bettable'] = self.fixtures.apply(lambda x: True if x['Highest Points'] >= high_threshold and x['Lowest Points'] < low_threshold else False, axis=1)
-        # Sort by highest points and bettable
-        self.fixtures = self.fixtures.sort_values(['Bettable', 'Highest Points'], ascending=[False, False])
-        self.fixtures = self.fixtures.drop(columns=['Highest Points', 'Lowest Points']).reset_index(drop=True)
-    
-    def beautify_fixtures(self):
-        self.fixtures['Player1'] = '(' + self.fixtures['Rank1'].astype(str) + ') ' + self.fixtures['Player1']
-        self.fixtures['Player2'] = '(' + self.fixtures['Rank2'].astype(str) + ') ' + self.fixtures['Player2']
-        self.fixtures = self.fixtures[['Bettable', 'Player1', 'Player2', 'Time', 'Tournament', 'Category', 'Round']]
-        def color_rows(row):
-            color = 'background-color: lightgreen' if row['Bettable'] else 'background-color: lavenderblush'
-            return [color] * len(row)
-        self.fixtures = self.fixtures.style.apply(color_rows, axis=1)
-
-    def run(self):
+    def run(self, next_hours=24):
         self.open_browser()
-        # self.get_fixtures()
+        self.get_fixtures(next_hours=next_hours)
         self.add_rank()
         self.close_browser()
-        self.sort_fixtures()
-        self.beautify_fixtures()
+
+def filter_fixtures(df, high_threshold=2000, low_threshold=1000):
+    """Sorts the fixtures by highest points"""
+    # Add 'bettable' column
+    temp = df.copy()
+    temp['Highest Points'] = temp[['Points1', 'Points2']].max(axis=1)
+    temp['Lowest Points'] = temp[['Points1', 'Points2']].min(axis=1)
+    temp['Bettable'] = temp.apply(lambda x: True if x['Highest Points'] >= high_threshold and x['Lowest Points'] < low_threshold else False, axis=1)
+    # Sort by highest points and bettable
+    temp = temp.sort_values(['Bettable', 'Highest Points'], ascending=[False, False])
+    temp = temp.drop(columns=['Highest Points', 'Lowest Points']).reset_index(drop=True)
+    return temp
+
+def beautify_fixtures(df):
+    temp = df.copy()
+    temp['Player1'] = '(' + temp['Rank1'].astype(str) + ') ' + temp['Player1'] + ' [' + temp['Points1'].astype(str) + ']'
+    temp['Player2'] = '(' + temp['Rank2'].astype(str) + ') ' + temp['Player2'] + ' [' + temp['Points2'].astype(str) + ']'
+    temp = temp[['Bettable', 'Player1', 'Player2', 'Odd1', 'Odd2', 'Time', 'Tournament', 'Category', 'Round']]
+    temp[['Odd1', 'Odd2']] = temp[['Odd1', 'Odd2']].round(2)
+    return temp
