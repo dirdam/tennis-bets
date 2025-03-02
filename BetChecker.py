@@ -46,12 +46,15 @@ class BetChecker():
 
     def get_fixtures(self):
         """Gets all upcoming fixtures from TNNS"""
+        import time
         from datetime import datetime
         progress_text = 'Getting fixtures...'
         my_bar = st.progress(0, text=progress_text) # Initialize progress bar
         print(progress_text)
         self.browser.get('https://tnnslive.com/')
-        action_xpath(self.browser, '//*[@id="root"]/div/div/div/div/div/div/div/div[2]/div[2]/div/div/div/div/div[2]/div[2]/div/div[1]/div/div[1]/div/div/div/div[2]/div/div[1]/div[2]/div/div/div[4]/div/div', 'click')
+        # action_xpath(self.browser, '//*[@id="root"]/div/div/div/div/div/div/div/div[2]/div[2]/div/div/div/div/div[2]/div[2]/div/div[1]/div/div[1]/div/div/div/div[2]/div/div[1]/div[2]/div/div/div[4]/div/div', 'click')
+        time.sleep(5)
+        self.browser.find_element('xpath', '//*[@id="root"]/div/div/div/div/div/div/div/div[2]/div[2]/div/div/div/div/div[2]/div[2]/div/div[1]/div/div[1]/div/div/div/div[2]/div/div[1]/div[2]/div/div/div[4]/div/div').click()
         table = self.browser.find_element('xpath', '//*[@id="root"]/div/div/div/div/div/div/div/div[2]/div[2]/div/div/div/div/div[2]/div[2]/div/div[1]/div/div[1]/div/div/div/div[2]/div/div[2]')
         rows = table.find_elements('xpath', './/div[@tabindex="0"]')
         data = []
