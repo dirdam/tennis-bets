@@ -20,9 +20,4 @@ if 'bet_checker' in st.session_state:
         low_threshold = st.slider('Low threshold (points)', min_value=0, max_value=high_threshold, value=1000, step=100)
     fixtures = bc.filter_fixtures(fixtures, high_threshold=high_threshold, low_threshold=low_threshold)
     fixtures = bc.beautify_fixtures(fixtures)
-    # Show all rows with column 'Bettable' == True and top 5 rows with column 'Bettable' == False
-    fix1 = fixtures[fixtures['Bettable'] == True]
-    fix2 = fixtures[fixtures['Bettable'] == False].head(5)
-    # Join both dataframes concatenated
-    fixtures = pd.concat([fix1, fix2])
     st.dataframe(fixtures, use_container_width=True)

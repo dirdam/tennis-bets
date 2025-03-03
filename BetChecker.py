@@ -197,4 +197,9 @@ def beautify_fixtures(df):
     temp['Player2'] = '(' + temp['Rank2'].astype(str) + ') ' + temp['Player2'] + ' [' + temp['Points2'].astype(str) + ']'
     temp = temp[['Bettable', 'Tournament', 'Player1', 'Player2', 'Odd1', 'Odd2', 'Time', 'Category', 'Round']]
     temp[['Odd1', 'Odd2']] = temp[['Odd1', 'Odd2']].round(2)
+    # Show all rows with column 'Bettable' == True and top 5 rows with column 'Bettable' == False
+    fix1 = temp[temp['Bettable'] == True]
+    fix2 = temp[temp['Bettable'] == False].head(5)
+    # Join both dataframes concatenated
+    temp = pd.concat([fix1, fix2])
     return temp
