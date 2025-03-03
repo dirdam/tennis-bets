@@ -1,6 +1,11 @@
 import streamlit as st
 import BetChecker as bc
 
+st.set_page_config(
+    page_title="Tennis Bets",
+    page_icon="🎾"
+    )
+
 st.markdown('# Bet Checker')
 
 next_hours = st.slider('Get fixtures within the next hours:', min_value=1, max_value=24, value=24, step=1)
