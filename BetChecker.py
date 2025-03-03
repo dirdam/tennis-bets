@@ -140,8 +140,11 @@ class BetChecker():
         df = df[df['Time'] < datetime.now() + timedelta(hours=next_hours)]
         self.fixtures = df
     
-    def add_rank(self):
+    def get_ranks(self):
         """Adds the ATP/WTA rank and points of each player"""
+        if 'ranks' in self.__dict__:
+            print('Using already extracted ranks...')
+            return
         players = []
         for type in ['atp', 'wta']:
             progress_text = f'Getting {type.upper()} rankings...'
@@ -168,6 +171,11 @@ class BetChecker():
         players = pd.DataFrame(players)
         players['Rank'] = players['Rank'].astype(int)
         players['Points'] = players['Points'].astype(int)
+        self.ranks = players # Save ranks as attribute
+
+    def add_ranks(self):
+        """Adds the ATP/WTA rank and points of each player"""
+        players = self.ranks
         self.fixtures['Rank1'] = self.fixtures['Player1'].apply(lambda x: players[players['Player'] == x]['Rank'].values[0] if x in players['Player'].values else 9999)
         self.fixtures['Rank2'] = self.fixtures['Player2'].apply(lambda x: players[players['Player'] == x]['Rank'].values[0] if x in players['Player'].values else 9999)
         self.fixtures['Points1'] = self.fixtures['Player1'].apply(lambda x: players[players['Player'] == x]['Points'].values[0] if x in players['Player'].values else 0)
@@ -176,7 +184,8 @@ class BetChecker():
     def run(self, next_hours=24):
         self.open_browser()
         self.get_fixtures(next_hours=next_hours)
-        self.add_rank()
+        self.get_ranks()
+        self.add_ranks()
         self.close_browser()
 
 def filter_fixtures(df, high_threshold=2000, low_threshold=1000):
