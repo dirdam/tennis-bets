@@ -13,7 +13,6 @@ st.markdown('## Fixtures')
 if 'bet_checker' in st.session_state:
     bet_checker = st.session_state['bet_checker']
     fixtures = bet_checker.fixtures
-    # Split sliders into two columns
     cols = st.columns(2)
     with cols[0]:
         high_threshold = st.slider('High threshold (points):', min_value=1000, max_value=3000, value=2000, step=100)
@@ -21,4 +20,9 @@ if 'bet_checker' in st.session_state:
         low_threshold = st.slider('Low threshold (points)', min_value=0, max_value=high_threshold, value=1000, step=100)
     fixtures = bc.filter_fixtures(fixtures, high_threshold=high_threshold, low_threshold=low_threshold)
     fixtures = bc.beautify_fixtures(fixtures)
+    # Show all rows with column 'Bettable' == True and top 5 rows with column 'Bettable' == False
+    fix1 = fixtures[fixtures['Bettable'] == True]
+    fix2 = fixtures[fixtures['Bettable'] == False].head(5)
+    # Join both dataframes
+    fixtures = fix1.append(fix2)
     st.dataframe(fixtures, use_container_width=True)

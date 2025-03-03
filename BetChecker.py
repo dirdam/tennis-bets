@@ -195,6 +195,6 @@ def beautify_fixtures(df):
     temp = df.copy()
     temp['Player1'] = '(' + temp['Rank1'].astype(str) + ') ' + temp['Player1'] + ' [' + temp['Points1'].astype(str) + ']'
     temp['Player2'] = '(' + temp['Rank2'].astype(str) + ') ' + temp['Player2'] + ' [' + temp['Points2'].astype(str) + ']'
-    temp = temp[['Bettable', 'Player1', 'Player2', 'Odd1', 'Odd2', 'Time', 'Tournament', 'Category', 'Round']]
+    temp = temp[['Bettable', 'Tournament', 'Player1', 'Player2', 'Odd1', 'Odd2', 'Time', 'Category', 'Round']]
     temp[['Odd1', 'Odd2']] = temp[['Odd1', 'Odd2']].round(2)
     return temp
