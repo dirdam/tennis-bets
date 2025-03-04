@@ -122,7 +122,7 @@ class BetChecker():
         # Create DataFrame
         tournaments = data['sids']
         matches = data['all_matches']
-        matches = [match for match in matches if 'finishedAt' not in match]
+        matches = [match for match in matches if 'finishedAt' not in match and 'd_st' in match]
         df = pd.DataFrame(matches)
         df['Tournament'] = df['sid'].apply(lambda x: tournaments[str(x)]['t'])
         df['Category+Surface'] = df['sid'].apply(lambda x: tournaments[str(x)]['su'])
@@ -132,9 +132,9 @@ class BetChecker():
         df['Player2'] = df['p'].apply(lambda x: x[1]['n'])
         df['Time'] = df['start_time_timestamp'].apply(lambda x: datetime.fromtimestamp(int(x)/1000, tz=timezone.utc) + timedelta(hours=9)) # Japan time
         df['Time'] = df['Time'].dt.tz_localize(None)
-        df['Round'] = df['d_st'].apply(lambda x: json.loads(x)['s'] if '{' in x else x) # Some rounds might not be in JSON format
-        df['Odd1'] = df['od'].apply(lambda x: json.loads(x)['o'][0]).astype(float).fillna(0)
-        df['Odd2'] = df['od'].apply(lambda x: json.loads(x)['o'][1]).astype(float).fillna(0)
+        df['Round'] = df['d_st'].apply(lambda x: x['s'])
+        df['Odd1'] = df['od'].apply(lambda x: x['o'][0]).astype(float).fillna(0)
+        df['Odd2'] = df['od'].apply(lambda x: x['o'][1]).astype(float).fillna(0)
         df = df[['Tournament', 'Category', 'Surface', 'Player1', 'Player2', 'Odd1', 'Odd2', 'Time', 'Round']]
         # Restrict to times within 24 hours
         df = df[df['Time'] < datetime.now() + timedelta(hours=next_hours)]
