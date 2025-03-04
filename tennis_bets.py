@@ -8,13 +8,12 @@ st.set_page_config(
 
 st.markdown('# Bet Checker')
 
-next_hours = st.slider('Get fixtures within the next hours:', min_value=1, max_value=24, value=24, step=1)
-if st.button('Get fixtures & Ranks'):
+if st.button('Get fixtures and ranks'):
     if 'bet_checker' not in st.session_state: # Create new BetChecker object if first time
         bet_checker = bc.BetChecker(headless=True)
     else: # Use existing BetChecker object if not first time
         bet_checker = st.session_state['bet_checker']
-    bet_checker.run(next_hours=next_hours)
+    bet_checker.run(next_hours=24)
     st.session_state['bet_checker'] = bet_checker
 
 st.markdown('## Fixtures')
