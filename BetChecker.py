@@ -104,7 +104,7 @@ class BetChecker():
 
     def get_fixtures(self, next_hours=24):
         """Gets all upcoming fixtures from the backend of TNNS"""
-        import requests
+        import requests, json
         from datetime import datetime, timezone, timedelta
         progress_text = 'Getting fixtures...'
         print(progress_text)
@@ -124,6 +124,7 @@ class BetChecker():
         matches = data['all_matches']
         matches = [match for match in matches if 'finishedAt' not in match]
         df = pd.DataFrame(matches)
+        df[['p', 'd_st', 'od']] = df[['p', 'd_st', 'od']].applymap(json.loads)
         df['Tournament'] = df['sid'].apply(lambda x: tournaments[str(x)]['t'])
         df['Category+Surface'] = df['sid'].apply(lambda x: tournaments[str(x)]['su'])
         df['Category'] = df['Category+Surface'].apply(lambda x: x.split(' · ')[0])
@@ -132,7 +133,7 @@ class BetChecker():
         df['Player2'] = df['p'].apply(lambda x: x[1]['n'])
         df['Time'] = df['start_time_timestamp'].apply(lambda x: datetime.fromtimestamp(int(x)/1000, tz=timezone.utc) + timedelta(hours=9)) # Japan time
         df['Time'] = df['Time'].dt.tz_localize(None)
-        df['Round'] = df['d_st'].apply(lambda x: x['s'] if isinstance(x, dict) else None)
+        df['Round'] = df['d_st'].apply(lambda x: x['s'] if 's' in x else '')
         df['Odd1'] = df['od'].apply(lambda x: x['o'][0]).astype(float).fillna(0)
         df['Odd2'] = df['od'].apply(lambda x: x['o'][1]).astype(float).fillna(0)
         df = df[['Tournament', 'Category', 'Surface', 'Player1', 'Player2', 'Odd1', 'Odd2', 'Time', 'Round']]
