@@ -122,7 +122,8 @@ class BetChecker():
         # Create DataFrame
         tournaments = data['sids']
         matches = data['all_matches']
-        matches = [match for match in matches if 'finishedAt' not in match and 'd_st' in match] # 'd_st' must be forced, otherwise the Round code will throw an error
+        matches = [match for match in matches if ('d_st' in match and 's' in match['d_st']) else match.update({'d_st': {'s': ''}})] # Force 'd_st' to have 's' key
+        matches = [match for match in matches if 'finishedAt' not in match]
         df = pd.DataFrame(matches)
         df['Tournament'] = df['sid'].apply(lambda x: tournaments[str(x)]['t'])
         df['Category+Surface'] = df['sid'].apply(lambda x: tournaments[str(x)]['su'])
