@@ -122,9 +122,11 @@ class BetChecker():
         # Create DataFrame
         tournaments = data['sids']
         matches = data['all_matches']
-        for match in matches: # Force matches to have round info
+        for match in matches: # Force matches to have round and odds info
             if 'd_st' not in match or 's' not in match['d_st']:
                 match['d_st'] = {'s': ''} # Add empty round if not present
+            if 'od' not in match or 'o' not in match['od']:
+                match['od'] = {'o': [0, 0]} # Add empty odds if not present
         matches = [match for match in matches if 'finishedAt' not in match]
         df = pd.DataFrame(matches)
         df['Tournament'] = df['sid'].apply(lambda x: tournaments[str(x)]['t'])
