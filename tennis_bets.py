@@ -1,30 +1,125 @@
+import os
 import streamlit as st
-import BetChecker as bc
+import zipfile
+from kaggle.api.kaggle_api_extended import KaggleApi
+import json
+import utils
 
-st.set_page_config(
-    page_title="Tennis Bets",
-    page_icon="🎾"
-    )
+# ---------- CONFIG ----------
+PASSWORD = st.secrets["PASSWORD"]
+os.environ["KAGGLE_USERNAME"] = st.secrets["KAGGLE_USERNAME"]
+os.environ["KAGGLE_KEY"] = st.secrets["KAGGLE_KEY"]
+DATASET = "dirdam/tennis-history"
+TARGET_FILENAME = "players_history.json" 
+# ----------------------------
 
-st.markdown('# Bet Checker')
+# Initialize Kaggle API
+def download_dataset():
+    api = KaggleApi()
+    api.authenticate()
 
-if st.button('Get fixtures and ranks'):
-    if 'bet_checker' not in st.session_state: # Create new BetChecker object if first time
-        bet_checker = bc.BetChecker(headless=True)
-    else: # Use existing BetChecker object if not first time
-        bet_checker = st.session_state['bet_checker']
-    bet_checker.run(next_hours=24)
-    st.session_state['bet_checker'] = bet_checker
+    msg = st.info("Downloading dataset from Kaggle...")
+    api.dataset_download_files(DATASET, path=".", unzip=False)
 
-st.markdown('## Fixtures')
-if 'bet_checker' in st.session_state:
-    bet_checker = st.session_state['bet_checker']
-    fixtures = bet_checker.fixtures
-    cols = st.columns(2)
-    with cols[0]:
-        high_threshold = st.slider('High threshold (points):', min_value=1000, max_value=3000, value=2000, step=100)
-    with cols[1]:
-        low_threshold = st.slider('Low threshold (points)', min_value=0, max_value=high_threshold, value=1000, step=100)
-    fixtures = bc.filter_fixtures(fixtures, high_threshold=high_threshold, low_threshold=low_threshold)
-    fixtures = bc.beautify_fixtures(fixtures)
-    st.dataframe(fixtures, use_container_width=True)
+    zip_path = f"{DATASET.split('/')[-1]}.zip"
+    # Remove old TARGET_FILENAME if it exists
+    target_path = os.path.join("data", TARGET_FILENAME)
+    if os.path.exists(target_path):
+        os.remove(target_path)
+
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall("data")
+
+    # Remove the zip file after extraction
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
+
+    msg.empty()  # Remove the info message
+    st.success("Download complete!")
+
+# Password protection
+def login():
+    if 'authenticated' not in st.session_state:
+        st.session_state['authenticated'] = False
+
+    if not st.session_state['authenticated']:
+        pwd = st.text_input("Enter password:", type="password")
+        if pwd != PASSWORD:
+            st.warning("Enter password to access the app.")
+            st.stop()
+        else:
+            st.session_state['authenticated'] = True
+    else:
+        # Already authenticated, do nothing
+        pass
+
+if 'first_run' not in st.session_state:
+    st.session_state['first_run'] = True
+
+def main():
+    global first_run
+
+    st.title("🎾 Tennis strengths")
+    
+    login()
+
+    if st.session_state['first_run']:
+        download_dataset()
+        st.session_state['first_run'] = False
+
+    # Load data
+    with open(f"data/{TARGET_FILENAME}", 'r') as file:
+        data = json.load(file)
+
+    # Streamlit search and dropdowns for player selection
+    st.markdown("### Select players")
+
+    # Dropdowns for player selection
+    col1, col2 = st.columns(2)
+    with col1:
+        player1 = st.selectbox("Player 1", sorted(data) or ["(no match)"])
+    with col2:
+        player2 = st.selectbox("Player 2", sorted(data) or ["(no match)"])
+
+    # Simulate match
+    col1, col2 = st.columns(2)
+    button_clicked = False
+    past_matches_to_consider = 10 # Last X matches to consider
+    with col1:
+        if st.button("Simulate match of **3** sets", use_container_width=True):
+            num_sets = 3
+            button_clicked = True
+    with col2:
+        if st.button("Simulate match of **5** sets", use_container_width=True):
+            num_sets = 5
+            button_clicked = True
+    if player1 == player2:
+        st.warning("Please select two different players.")
+    elif button_clicked: # Run simulations
+        st.session_state['results'] = {}
+        st.session_state['recent_data'] = {}
+        progress_bar = st.progress(0, text="Simulating matches...")
+        for i in range(1, past_matches_to_consider + 1):
+            recent_data = {p: {'serve': data[p]['serve'][-i:], 'return': data[p]['return'][-i:]} for p in [player1, player2]}
+            st.session_state['recent_data'][i] = utils.flatten_data(recent_data)
+            results = utils.simulate_monte_carlo(player1, player2, st.session_state['recent_data'][i], num_sets=num_sets)
+            st.session_state['results'][i] = results
+            progress_bar.progress(i / past_matches_to_consider, text=f"Simulating matches... ({100 * i / past_matches_to_consider:.0f}%)")
+        progress_bar.empty()
+
+    if 'recent_data' in st.session_state and player1 in st.session_state['recent_data'][1] and player2 in st.session_state['recent_data'][1]:
+        matches_to_consider = st.number_input("Matches to consider", min_value=1, max_value=past_matches_to_consider, value=3, step=1)
+        st.markdown(f"### Strengths")
+        # Plot empirical comparison
+        with st.expander(f"Graphical comparison for the last **{matches_to_consider}** matches", expanded=False):
+            utils.plot_empirical_comparison_side_by_side(st.session_state['recent_data'][matches_to_consider], players_names=[player1, player2])
+
+        st.markdown(f"### Results")
+        # Horizontal bar showing win percentages
+        utils.plot_horizontal_win_bar(player1, player2, st.session_state['results'][matches_to_consider]['player1_wins_percent'], st.session_state['results'][matches_to_consider]['player2_wins_percent'])
+
+        # Display sets distribution
+        utils.plot_sets_distribution(st.session_state['results'][matches_to_consider]['sets_distribution'], player1, player2)
+
+if __name__ == "__main__":
+    main()
