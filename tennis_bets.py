@@ -98,13 +98,13 @@ def main():
     elif button_clicked: # Run simulations
         st.session_state['results'] = {}
         st.session_state['recent_data'] = {}
-        progress_bar = st.progress(0, text="Simulating matches...")
+        progress_bar = st.progress(0, text="Simulating Monte-Carlo...")
         for i in range(1, past_matches_to_consider + 1):
             recent_data = {p: {'serve': data[p]['serve'][-i:], 'return': data[p]['return'][-i:]} for p in [player1, player2]}
             st.session_state['recent_data'][i] = utils.flatten_data(recent_data)
             results = utils.simulate_monte_carlo(player1, player2, st.session_state['recent_data'][i], num_sets=num_sets)
             st.session_state['results'][i] = results
-            progress_bar.progress(i / past_matches_to_consider, text=f"Simulating matches... ({100 * i / past_matches_to_consider:.0f}%)")
+            progress_bar.progress(i / past_matches_to_consider, text=f"Simulating Monte-Carlo... ({100 * i / past_matches_to_consider:.0f}%)")
         progress_bar.empty()
 
     if 'recent_data' in st.session_state and player1 in st.session_state['recent_data'][1] and player2 in st.session_state['recent_data'][1]:
