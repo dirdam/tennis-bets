@@ -4,13 +4,15 @@ import zipfile
 from kaggle.api.kaggle_api_extended import KaggleApi
 import json
 import utils
+import pandas as pd
 
 # ---------- CONFIG ----------
 PASSWORD = st.secrets["PASSWORD"]
 os.environ["KAGGLE_USERNAME"] = st.secrets["KAGGLE_USERNAME"]
 os.environ["KAGGLE_KEY"] = st.secrets["KAGGLE_KEY"]
 DATASET = "dirdam/tennis-history"
-TARGET_FILENAME = "players_history.json" 
+TARGET_FILENAME1 = "players_history.json" 
+TARGET_FILENAME2 = "matches.csv"
 # ----------------------------
 
 # Initialize Kaggle API
@@ -22,10 +24,13 @@ def download_dataset():
     api.dataset_download_files(DATASET, path=".", unzip=False)
 
     zip_path = f"{DATASET.split('/')[-1]}.zip"
-    # Remove old TARGET_FILENAME if it exists
-    target_path = os.path.join("data", TARGET_FILENAME)
+    # Remove old TARGET_FILENAME1 if it exists
+    target_path = os.path.join("data", TARGET_FILENAME1)
     if os.path.exists(target_path):
         os.remove(target_path)
+    target_path2 = os.path.join("data", TARGET_FILENAME2)
+    if os.path.exists(target_path2):
+        os.remove(target_path2)
 
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall("data")
@@ -68,8 +73,10 @@ def main():
         st.session_state['first_run'] = False
 
     # Load data
-    with open(f"data/{TARGET_FILENAME}", 'r') as file:
+    with open(f"data/{TARGET_FILENAME1}", 'r') as file:
         data = json.load(file)
+    matches_df = pd.read_csv(f"data/{TARGET_FILENAME2}")
+    st.markdown(f"(Last updated: {pd.to_datetime(str(matches_df['date'].max())).strftime('%d-%m-%Y')})")
 
     # Streamlit search and dropdowns for player selection
     st.markdown("### Select players")
