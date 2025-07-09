@@ -108,18 +108,29 @@ def main():
         progress_bar.empty()
 
     if 'recent_data' in st.session_state and player1 in st.session_state['recent_data'][1] and player2 in st.session_state['recent_data'][1]:
-        matches_to_consider = st.number_input("Matches to consider", min_value=1, max_value=past_matches_to_consider, value=3, step=1)
-        st.markdown(f"### Strengths")
-        # Plot empirical comparison
-        with st.expander(f"Graphical comparison for the last **{matches_to_consider}** matches", expanded=False):
-            utils.plot_empirical_comparison_side_by_side(st.session_state['recent_data'][matches_to_consider], players_names=[player1, player2])
-
-        st.markdown(f"### Results")
+        if 'matches_to_consider' not in st.session_state:
+            st.session_state['matches_to_consider'] = 3
+        st.markdown(f"Choose the number of last matches to consider:")
+        matches_cols = st.columns(past_matches_to_consider)
+        # Display a button to select how many matches to consider, one for each column
+        for i in range(past_matches_to_consider):
+            with matches_cols[i]:
+                if st.button(f"{i + 1}", key=f"match_{i + 1}", use_container_width=True):
+                    st.session_state['matches_to_consider'] = i + 1
+ 
+        st.markdown(f"### Results for the last {st.session_state['matches_to_consider']} matches")
         # Horizontal bar showing win percentages
-        utils.plot_horizontal_win_bar(player1, player2, st.session_state['results'][matches_to_consider]['player1_wins_percent'], st.session_state['results'][matches_to_consider]['player2_wins_percent'])
+        utils.plot_horizontal_win_bar(player1, player2, st.session_state['results'][st.session_state['matches_to_consider']]['player1_wins_percent'], st.session_state['results'][st.session_state['matches_to_consider']]['player2_wins_percent'])
 
         # Display sets distribution
-        utils.plot_sets_distribution(st.session_state['results'][matches_to_consider]['sets_distribution'], player1, player2)
+        utils.plot_sets_distribution(st.session_state['results'][st.session_state['matches_to_consider']]['sets_distribution'], player1, player2)
+
+        # Show strengths (optional)
+        st.markdown(f"### Strengths")
+        # Plot empirical comparison
+        with st.expander(f"Graphical comparison for the last **{st.session_state['matches_to_consider']}** matches", expanded=False):
+            utils.plot_empirical_comparison_side_by_side(st.session_state['recent_data'][st.session_state['matches_to_consider']], players_names=[player1, player2])
+
 
 if __name__ == "__main__":
     main()
