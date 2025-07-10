@@ -132,6 +132,9 @@ def main():
         # Display sets distribution
         utils.plot_sets_distribution(st.session_state['results'][st.session_state['matches_to_consider']]['sets_distribution'], player1, player2)
 
+        # Display games count
+        utils.plot_games_count(st.session_state['results'][st.session_state['matches_to_consider']]['games_count'])
+
         # Show strengths (optional)
         st.markdown(f"### Strengths")
         # Plot empirical comparison

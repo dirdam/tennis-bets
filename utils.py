@@ -111,6 +111,7 @@ def simulate_match(player1, player2, data, num_sets=3, verbose=False):
     player1_sets = 0
     player2_sets = 0
     server = player1
+    total_games = 0
     while max(player1_sets, player2_sets) < (num_sets // 2 + 1):
         receiver = player2 if server == player1 else player1
         # Simulate a set
@@ -121,9 +122,11 @@ def simulate_match(player1, player2, data, num_sets=3, verbose=False):
             player1_sets += 1
         else:
             player2_sets += 1
+        # Track total games played
+        total_games += sum(set_result.values())
         # Switch server
         server = receiver
-    return {player1: player1_sets, player2: player2_sets}
+    return {player1: player1_sets, player2: player2_sets, 'total_games': total_games}
 
 def simulate_monte_carlo(player1, player2, recent_data, num_sets, num_matches=10000, st_progress=True):
     """Simulate a large number of matches and return win counts, percentages, and set distributions."""
@@ -131,6 +134,7 @@ def simulate_monte_carlo(player1, player2, recent_data, num_sets, num_matches=10
     player2_wins = 0
     server = player1 if np.random.rand() < 0.5 else player2  # Randomly choose server for the first match
     sets_distribution = {}  # Example: {'2-0': 5000, '2-1': 3000, '1-2': 2000} to track set results
+    games_count = {}  # Track games count for each match
     progress_bar = st.progress(0, text="Simulating matches...") if st_progress else None
     for i in range(num_matches):
         receiver = player2 if server == player1 else player1
@@ -146,6 +150,12 @@ def simulate_monte_carlo(player1, player2, recent_data, num_sets, num_matches=10
             sets_distribution[sets_result] = 1
         else:
             sets_distribution[sets_result] += 1
+        # Track games count
+        total_games = match_result['total_games']
+        if total_games not in games_count:
+            games_count[total_games] = 1
+        else:
+            games_count[total_games] += 1
         # Switch server
         server = receiver  # Alternate server for the next match
         if st_progress and (i % max(1, num_matches // 100) == 0 or i == num_matches - 1):
@@ -159,7 +169,8 @@ def simulate_monte_carlo(player1, player2, recent_data, num_sets, num_matches=10
         'player2_wins': player2_wins,
         'player1_wins_percent': player1_wins_percent,
         'player2_wins_percent': player2_wins_percent,
-        'sets_distribution': sets_distribution
+        'sets_distribution': sets_distribution,
+        'games_count': games_count
     }
 
 def plot_horizontal_win_bar(player1, player2, player1_wins_percent, player2_wins_percent):
@@ -234,4 +245,54 @@ def plot_sets_distribution(sets_distribution, player1, player2):
         margin=dict(l=40, r=40, t=40, b=40),
         yaxis=dict(gridcolor='rgba(0,0,0,0.1)')
     )
+    st.plotly_chart(fig, use_container_width=True)
+
+def plot_games_count(games_count):
+    """Plots the distribution of total games played in simulated matches using Plotly and Streamlit, with vertical lines for mean and median."""
+    x_vals = list(games_count.keys())
+    y_vals = list(games_count.values())
+
+    # Compute mean and median
+    all_games = []
+    for games, count in games_count.items():
+        all_games.extend([games] * count)
+    mean_games = np.mean(all_games)
+    median_games = np.median(all_games)
+
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=x_vals,
+                y=y_vals,
+                marker_color='skyblue',
+                name='Games count'
+            ),
+            go.Scatter(
+                x=[mean_games, mean_games],
+                y=[0, max(y_vals)],
+                mode='lines',
+                line=dict(color='red', dash='dash'),
+                name=f"Mean: {mean_games:.2f}",
+                showlegend=True
+            ),
+            go.Scatter(
+                x=[median_games, median_games],
+                y=[0, max(y_vals)],
+                mode='lines',
+                line=dict(color='green', dash='dot'),
+                name=f"Median: {median_games:.2f}",
+                showlegend=True
+            )
+        ]
+    )
+    fig.update_layout(
+        title='Distribution of total games',
+        xaxis_title='Total games',
+        yaxis_title='Number of matches',
+        bargap=0.2,
+        plot_bgcolor='white',
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
+    )
+    fig.update_xaxes(tickangle=45, showgrid=False)
+    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
     st.plotly_chart(fig, use_container_width=True)
