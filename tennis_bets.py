@@ -115,18 +115,10 @@ def main():
         progress_bar.empty()
 
     if 'recent_data' in st.session_state and player1 in st.session_state['recent_data'][1] and player2 in st.session_state['recent_data'][1]:
-        # if 'matches_to_consider' not in st.session_state:
-        #     st.session_state['matches_to_consider'] = 3
         st.markdown(f"Choose the number of last matches to consider:")
-        # matches_cols = st.columns(past_matches_to_consider)
-        # # Display a button to select how many matches to consider, one for each column
-        # for i in range(past_matches_to_consider):
-        #     with matches_cols[i]:
-        #         if st.button(f"{i + 1}", key=f"match_{i + 1}", use_container_width=True):
-        #             st.session_state['matches_to_consider'] = i + 1
 
         # Select how many matches to consider with tabs
-        tabs = st.tabs([f"( **{i + 1}** )" for i in range(past_matches_to_consider)]) # Uses em-space
+        tabs = st.tabs([f"❨ {i + 1} ❩" for i in range(past_matches_to_consider)])
 
         for i in range(past_matches_to_consider):
             with tabs[i]: 
