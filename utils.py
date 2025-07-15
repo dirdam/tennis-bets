@@ -26,10 +26,10 @@ def get_empirical_probs(data, support=None):
     probs = [counts.get(x, 0) / total for x in support]
     return support, probs
 
-def plot_empirical_comparison_side_by_side(data, players_names):
+def plot_empirical_comparison_side_by_side(data, players_names, key=None):
     '''Plots side-by-side comparisons of 'serve' and 'return' empirical distributions between two players using Plotly and Streamlit.'''
     categories = ['serve', 'return']
-    for category in categories:
+    for idx, category in enumerate(categories):
         data1 = data[players_names[0]][category]
         data2 = data[players_names[1]][category]
 
@@ -69,7 +69,8 @@ def plot_empirical_comparison_side_by_side(data, players_names):
             dtick=1
             )
         )
-        st.plotly_chart(fig, use_container_width=True)
+        chart_key = f"{key}_cat_{idx}" if key is not None else None
+        st.plotly_chart(fig, use_container_width=True, key=chart_key)
 
 def generate_from_empirical(data):
     '''Generates a random sample from empirical data using weighted probabilities.'''
@@ -173,7 +174,7 @@ def simulate_monte_carlo(player1, player2, recent_data, num_sets, num_matches=10
         'games_count': games_count
     }
 
-def plot_horizontal_win_bar(player1, player2, player1_wins_percent, player2_wins_percent):
+def plot_horizontal_win_bar(player1, player2, player1_wins_percent, player2_wins_percent, key=None):
     """Plots a single horizontal bar split by win percentage for two players using Plotly and Streamlit."""
     fig = go.Figure()
     fig.add_trace(go.Bar(
@@ -206,9 +207,9 @@ def plot_horizontal_win_bar(player1, player2, player1_wins_percent, player2_wins
         margin=dict(l=30, r=30, t=20, b=20),
         showlegend=False,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key=key)
 
-def plot_sets_distribution(sets_distribution, player1, player2):
+def plot_sets_distribution(sets_distribution, key=None):
     def custom_sort_key(item):
         '''Custom sort: winner sets descending, loser sets ascending (e.g., 3-0, 3-1, 3-2, 2-3, 1-3, 0-3)'''
         winner, loser = map(int, item[0].split('-'))
@@ -245,9 +246,9 @@ def plot_sets_distribution(sets_distribution, player1, player2):
         margin=dict(l=40, r=40, t=40, b=40),
         yaxis=dict(gridcolor='rgba(0,0,0,0.1)')
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key=key)
 
-def plot_games_count(games_count):
+def plot_games_count(games_count, key=None):
     """Plots the distribution of total games played in simulated matches using Plotly and Streamlit, with vertical lines for mean and median."""
     x_vals = list(games_count.keys())
     y_vals = list(games_count.values())
@@ -295,4 +296,4 @@ def plot_games_count(games_count):
     )
     fig.update_xaxes(tickangle=45, showgrid=False)
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key=key)

@@ -115,31 +115,41 @@ def main():
         progress_bar.empty()
 
     if 'recent_data' in st.session_state and player1 in st.session_state['recent_data'][1] and player2 in st.session_state['recent_data'][1]:
-        if 'matches_to_consider' not in st.session_state:
-            st.session_state['matches_to_consider'] = 3
+        # if 'matches_to_consider' not in st.session_state:
+        #     st.session_state['matches_to_consider'] = 3
         st.markdown(f"Choose the number of last matches to consider:")
-        matches_cols = st.columns(past_matches_to_consider)
-        # Display a button to select how many matches to consider, one for each column
+        # matches_cols = st.columns(past_matches_to_consider)
+        # # Display a button to select how many matches to consider, one for each column
+        # for i in range(past_matches_to_consider):
+        #     with matches_cols[i]:
+        #         if st.button(f"{i + 1}", key=f"match_{i + 1}", use_container_width=True):
+        #             st.session_state['matches_to_consider'] = i + 1
+
+        # Select how many matches to consider with tabs
+        tabs = st.tabs([f"( **{i + 1}** )" for i in range(past_matches_to_consider)]) # Uses em-space
+
         for i in range(past_matches_to_consider):
-            with matches_cols[i]:
-                if st.button(f"{i + 1}", key=f"match_{i + 1}", use_container_width=True):
-                    st.session_state['matches_to_consider'] = i + 1
- 
-        st.markdown(f"### Results for the last {st.session_state['matches_to_consider']} matches")
-        # Horizontal bar showing win percentages
-        utils.plot_horizontal_win_bar(player1, player2, st.session_state['results'][st.session_state['matches_to_consider']]['player1_wins_percent'], st.session_state['results'][st.session_state['matches_to_consider']]['player2_wins_percent'])
+            with tabs[i]: 
+                st.markdown(f"### Results for the last {i+1} matches")
+                # Horizontal bar showing win percentages
+                utils.plot_horizontal_win_bar(player1, player2,
+                    st.session_state['results'][i+1]['player1_wins_percent'], st.session_state['results'][i+1]['player2_wins_percent'],
+                    key=f"win_bar_{i+1}"
+                )
 
-        # Display sets distribution
-        utils.plot_sets_distribution(st.session_state['results'][st.session_state['matches_to_consider']]['sets_distribution'], player1, player2)
+                # Display sets distribution
+                utils.plot_sets_distribution(st.session_state['results'][i+1]['sets_distribution'], key=f"sets_dist_{i+1}")
 
-        # Display games count
-        utils.plot_games_count(st.session_state['results'][st.session_state['matches_to_consider']]['games_count'])
+                # Display games count (optional)
+                st.markdown(f"### Games count for the predicted matches")
+                with st.expander(f"Distribution total games played in the predicted matches", expanded=False):
+                    utils.plot_games_count(st.session_state['results'][i+1]['games_count'], key=f"games_count_{i+1}")
 
-        # Show strengths (optional)
-        st.markdown(f"### Strengths")
-        # Plot empirical comparison
-        with st.expander(f"Graphical comparison for the last **{st.session_state['matches_to_consider']}** matches", expanded=False):
-            utils.plot_empirical_comparison_side_by_side(st.session_state['recent_data'][st.session_state['matches_to_consider']], players_names=[player1, player2])
+                # Show strengths (optional)
+                st.markdown(f"### Players strengths")
+                # Plot empirical comparison
+                with st.expander(f"Graphical comparison for the last **{i+1}** matches", expanded=False):
+                    utils.plot_empirical_comparison_side_by_side(st.session_state['recent_data'][i+1], players_names=[player1, player2], key=f"empirical_comp_{i+1}")
 
 
 if __name__ == "__main__":
