@@ -78,6 +78,10 @@ def main():
     matches_df = pd.read_csv(f"data/{TARGET_FILENAME2}")
     st.markdown(f"(Last update: {pd.to_datetime(str(matches_df['date'].max())).strftime('%d-%m-%Y')})")
 
+    # Restrict data to players with at least X matches
+    past_matches_to_consider = 10 # Last X matches to consider
+    data = {k: v for k, v in data.items() if len(v['serve']) >= 10 and len(v['return']) >= 10}
+
     # Streamlit search and dropdowns for player selection
     st.markdown("### Select players")
 
@@ -91,7 +95,6 @@ def main():
     # Simulate match
     col1, col2 = st.columns(2)
     button_clicked = False
-    past_matches_to_consider = 10 # Last X matches to consider
     with col1:
         if st.button("Simulate match of **3** sets", use_container_width=True):
             num_sets = 3
