@@ -3,6 +3,7 @@ import plotly.graph_objs as go
 import streamlit as st
 import random
 import numpy as np
+import pandas as pd
 
 player1_color = "skyblue"  # Light blue
 # Light orange
@@ -297,3 +298,60 @@ def plot_games_count(games_count, key=None):
     fig.update_xaxes(tickangle=45, showgrid=False)
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
     st.plotly_chart(fig, use_container_width=True, key=key)
+
+def calculate_prediction_differences(results):
+    """Calculates the differences in win percentages between two players across multiple simulations."""
+    diff = []
+    for i in range(1, len(results) + 1):
+        diff.append(results[i]['player1_wins_percent'] - results[i]['player2_wins_percent'])
+    return diff
+
+def plot_prediction_differences(results, player1, player2):
+    """Plots the differences in win percentages between two players across multiple simulations."""
+    prediction_differences = calculate_prediction_differences(results)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=list(range(1, len(prediction_differences) + 1)),
+        y=prediction_differences,
+        mode='lines+markers',
+        name='Prediction differences',
+        line=dict(color='green', width=2),
+        marker=dict(size=5)
+    ))
+    # Set y-axis range and labels so that top is player1 and bottom is player2
+    fig.update_layout(
+        title=f"Prediction differences: {player1} vs {player2}",
+        xaxis_title="Number of matches considered",
+        yaxis_title="Win percentage difference",
+        xaxis=dict(tickmode='linear', dtick=1),
+        yaxis=dict(
+            title="Difference (%)",
+            showgrid=True,
+            gridcolor='lightgray',
+            range=[-100, 100],
+            tickvals=[-100, -75, -50, -25, 0, 25, 50, 75, 100],
+            ticktext=[player2, "75", "50", "25", "0", "25", "50", "75", player1],
+            zeroline=True,
+            zerolinewidth=2, # Make the zero line bolder
+            zerolinecolor='black'
+        ),
+        plot_bgcolor='white'
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def get_last_matches(matches_df, player1, player2):
+    """Returns the last match records of two players from the matches DataFrame."""
+    def get_last_record(df, player):
+        records = df[(df['winner'] == player) | (df['loser'] == player)]
+        if records.empty:
+            return pd.DataFrame()
+        last_record = records.iloc[:1].copy()
+        last_record['player'] = player
+        last_record['total_matches'] = records.shape[0]
+        return last_record
+
+    player1_last = get_last_record(matches_df, player1)
+    player2_last = get_last_record(matches_df, player2)
+    both_players = pd.concat([player1_last, player2_last], ignore_index=True).sort_values(by='date', ascending=False)
+    both_players['date'] = both_players['date'].apply(lambda d: pd.to_datetime(str(d)).strftime('%d-%m-%Y'))
+    return both_players[['player', 'tournament', 'stage', 'date', 'total_matches']]

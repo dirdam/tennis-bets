@@ -76,7 +76,7 @@ def main():
     with open(f"data/{TARGET_FILENAME1}", 'r') as file:
         data = json.load(file)
     matches_df = pd.read_csv(f"data/{TARGET_FILENAME2}")
-    st.markdown(f"(Last updated: {pd.to_datetime(str(matches_df['date'].max())).strftime('%d-%m-%Y')})")
+    st.markdown(f"(Last update: {pd.to_datetime(str(matches_df['date'].max())).strftime('%d-%m-%Y')})")
 
     # Streamlit search and dropdowns for player selection
     st.markdown("### Select players")
@@ -100,6 +100,9 @@ def main():
         if st.button("Simulate match of **5** sets", use_container_width=True):
             num_sets = 5
             button_clicked = True
+    # Show last matches from each player
+    st.markdown(f"Players last appearance in database:")
+    st.write(utils.get_last_matches(matches_df, player1, player2))
     if player1 == player2:
         st.warning("Please select two different players.")
     elif button_clicked: # Run simulations
@@ -115,6 +118,8 @@ def main():
         progress_bar.empty()
 
     if 'recent_data' in st.session_state and player1 in st.session_state['recent_data'][1] and player2 in st.session_state['recent_data'][1]:
+        st.markdown(f"### Winning probabilities differences for the last {past_matches_to_consider} matches")
+        utils.plot_prediction_differences(st.session_state['results'], player1, player2)
         st.markdown(f"Choose the number of last matches to consider:")
 
         # Select how many matches to consider with tabs
