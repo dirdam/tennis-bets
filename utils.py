@@ -354,7 +354,7 @@ def plot_prediction_differences(results, player1, player2):
             showgrid=True,
             gridcolor='lightgray'
         ),
-        plot_bgcolor='white'
+        plot_bgcolor='rgba(0,0,0,0)'  # Transparent background
     )
     fig.add_annotation(
         x=100, y=1, text=f"<b>{player1}</b>", showarrow=False, xanchor='left', yanchor='bottom', font=dict(size=14, color=player1_color)
