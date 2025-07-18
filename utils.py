@@ -350,9 +350,10 @@ def plot_prediction_differences(results, player1, player2):
             tickvals=[100, 75, 50, 25, 0, -25, -50, -75, -100],
             zeroline=True,
             zerolinewidth=2,
-            zerolinecolor='black',
+            zerolinecolor='lightgray',
             showgrid=True,
-            gridcolor='lightgray'
+            gridcolor='lightgray',
+            griddash='dash'  # Make vertical grid lines dashed
         ),
         plot_bgcolor='rgba(0,0,0,0)'  # Transparent background
     )
