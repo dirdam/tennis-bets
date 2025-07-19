@@ -373,10 +373,12 @@ def get_last_matches(matches_df, player1, player2):
             return pd.DataFrame()
         last_record = records.iloc[:1].copy()
         last_record['player'] = player
+        last_record['last_rival'] = last_record['loser'] if last_record['winner'].iloc[0] == player else last_record['winner']
+        last_record['result'] = 'Won' if last_record['winner'].iloc[0] == player else 'Lost'
         return last_record
 
     player1_last = get_last_record(matches_df, player1)
     player2_last = get_last_record(matches_df, player2)
     both_players = pd.concat([player1_last, player2_last], ignore_index=True).sort_values(by='date', ascending=False)
     both_players['date'] = both_players['date'].apply(lambda d: pd.to_datetime(str(d)).strftime('%d-%m-%Y'))
-    return both_players[['player', 'tournament', 'stage', 'date']]
+    return both_players[['player', 'tournament', 'stage', 'last_rival', 'result', 'date']]
