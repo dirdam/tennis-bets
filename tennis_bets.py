@@ -115,7 +115,7 @@ def main():
         for i in range(1, past_matches_to_consider + 1):
             recent_data = {p: {'serve': data[p]['serve'][-i:], 'return': data[p]['return'][-i:]} for p in [player1, player2]}
             st.session_state['recent_data'][i] = utils.flatten_data(recent_data)
-            results = utils.simulate_monte_carlo(player1, player2, st.session_state['recent_data'][i], num_sets=num_sets)
+            results = utils.simulate_monte_carlo(player1, player2, st.session_state['recent_data'][i], num_sets=num_sets, num_matches=2000)
             st.session_state['results'][i] = results
             progress_bar.progress(i / past_matches_to_consider, text=f"Simulating Monte-Carlo... ({100 * i / past_matches_to_consider:.0f}%)")
         progress_bar.empty()

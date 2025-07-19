@@ -341,7 +341,7 @@ def plot_prediction_differences(results, player1, player2):
         showlegend=False
     ))
     fig.update_layout(
-        title=f"Prediction differences: {player1} vs {player2}",
+        title=f"Prediction differences",
         yaxis_title="Number of matches considered",
         xaxis_title="Win percentage difference",
         yaxis=dict(dtick=1, autorange='reversed'),
