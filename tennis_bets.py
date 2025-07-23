@@ -122,7 +122,8 @@ def main():
 
     if 'recent_data' in st.session_state and player1 in st.session_state['recent_data'][1] and player2 in st.session_state['recent_data'][1]:
         st.markdown(f"### Winning probabilities differences for the last {past_matches_to_consider} matches")
-        utils.plot_prediction_differences(st.session_state['results'], player1, player2)
+        last_matches_in_tournament = utils.get_last_matches_in_tournament(matches_df, player1, player2)
+        utils.plot_prediction_differences(st.session_state['results'], player1, player2, last_matches_in_tournament)
         st.markdown(f"Choose the number of last matches to consider:")
 
         # Select how many matches to consider with tabs

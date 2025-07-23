@@ -306,23 +306,45 @@ def calculate_prediction_differences(results):
         diff.append(results[i]['player1_wins_percent'] - results[i]['player2_wins_percent'])
     return diff
 
-def plot_prediction_differences(results, player1, player2):
-    """Plots the differences in win percentages between two players across multiple simulations as a vertical plot, with x-axis reversed.
-    The line is thicker near the top and slimmer near the bottom."""
+def get_last_matches_in_tournament(matches_df, player1, player2):
+    """Returns the number of matches each player played in the last tournament they took part in."""
+    last_matches = {}
+    players_df = matches_df.copy()
+    players_df['date'] = players_df['date'].apply(lambda x: pd.to_datetime(str(x), format='%Y%m%d', errors='coerce'))
+    for player in [player1, player2]:
+        player_df = players_df[((players_df['winner'] == player) | (players_df['loser'] == player))]
+        last_tournament = player_df['tournament'].iloc[0]
+        last_tournament_date = player_df['date'].iloc[0]
+        # Restrict player_df to matches within 1 month of the last tournament date
+        one_month_ago = last_tournament_date - pd.Timedelta(days=30)
+        player_df = player_df[player_df['date'] >= one_month_ago]
+        # Filter matches for the last tournament
+        last_tournament_matches = player_df[player_df['tournament'] == last_tournament]
+        last_matches[player] = len(last_tournament_matches)
+    return last_matches
+
+
+def plot_prediction_differences(results, player1, player2, last_matches_in_tournament):
+    """
+    Plots the win percentage differences between two players across multiple simulations as a vertical line plot.
+    - The x-axis is reversed (100 to -100).
+    - The line is thicker at the top and thinner at the bottom.
+    - Horizontal dashed black lines are drawn at y-values corresponding to the number of last matches in tournament for each player:
+        - For player1: line from x=0 to x=100.
+        - For player2: line from x=-100 to x=0.
+    - Player names are annotated at the top left and right.
+    """
     prediction_differences = calculate_prediction_differences(results)
     y_vals = list(range(1, len(prediction_differences) + 1))
-    # Create a list of line widths: thickest at the top, slimmest at the bottom
-    max_width = 8
-    min_width = 2
+    max_width, min_width = 8, 2
     n = len(y_vals)
-    # Linear interpolation from max_width to min_width
     widths = [max_width - (max_width - min_width) * (i / (n - 1)) if n > 1 else max_width for i in range(n)]
 
     fig = go.Figure()
-    # Plot as segments to vary line width and color by top value
+
+    # Draw the difference lines with variable thickness and color
     for i in range(1, n):
-        top_value = prediction_differences[i-1]
-        color = player1_color if top_value >= 0 else player2_color
+        color = player1_color if prediction_differences[i-1] >= 0 else player2_color
         fig.add_trace(go.Scatter(
             x=prediction_differences[i-1:i+1],
             y=y_vals[i-1:i+1],
@@ -330,18 +352,39 @@ def plot_prediction_differences(results, player1, player2):
             line=dict(color=color, width=widths[i-1]),
             showlegend=False
         ))
-    # Add markers matching the size and color of the segments
-    marker_sizes = widths
+
+    # Add markers for each point
     marker_colors = [player1_color if diff >= 0 else player2_color for diff in prediction_differences]
     fig.add_trace(go.Scatter(
         x=prediction_differences,
         y=y_vals,
         mode='markers',
-        marker=dict(size=marker_sizes, color=marker_colors),
+        marker=dict(size=widths, color=marker_colors),
         showlegend=False
     ))
+
+    # Draw horizontal dashed lines for last_matches_in_tournament
+    for player, x_range in [(player1, (0, 100)), (player2, (-100, 0))]:
+        y_line = last_matches_in_tournament.get(player)
+        if y_line is not None:
+            fig.add_shape(
+                type="line",
+                x0=x_range[0], x1=x_range[1],
+                y0=y_line + 0.5, y1=y_line + 0.5,
+                line=dict(color="black", width=2, dash="dash"),
+                layer="above"
+            )
+
+    # Add player name annotations
+    fig.add_annotation(
+        x=100, y=1, text=f"<b>{player1}</b>", showarrow=False, xanchor='left', yanchor='bottom', font=dict(size=14, color=player1_color)
+    )
+    fig.add_annotation(
+        x=-100, y=1, text=f"<b>{player2}</b>", showarrow=False, xanchor='right', yanchor='bottom', font=dict(size=14, color=player2_color)
+    )
+
     fig.update_layout(
-        title=f"Prediction differences",
+        title="Prediction differences",
         yaxis_title="Number of matches considered",
         xaxis_title="Win percentage difference",
         yaxis=dict(dtick=1, autorange='reversed'),
@@ -353,15 +396,9 @@ def plot_prediction_differences(results, player1, player2):
             zerolinecolor='lightgray',
             showgrid=True,
             gridcolor='lightgray',
-            griddash='dash'  # Make vertical grid lines dashed
+            griddash='dash'
         ),
-        plot_bgcolor='rgba(0,0,0,0)'  # Transparent background
-    )
-    fig.add_annotation(
-        x=100, y=1, text=f"<b>{player1}</b>", showarrow=False, xanchor='left', yanchor='bottom', font=dict(size=14, color=player1_color)
-    )
-    fig.add_annotation(
-        x=-100, y=1, text=f"<b>{player2}</b>", showarrow=False, xanchor='right', yanchor='bottom', font=dict(size=14, color=player2_color)
+        plot_bgcolor='rgba(0,0,0,0)'
     )
     st.plotly_chart(fig, use_container_width=True)
 
