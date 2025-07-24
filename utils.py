@@ -329,7 +329,7 @@ def plot_prediction_differences(results, player1, player2, last_matches_in_tourn
     Plots the win percentage differences between two players across multiple simulations as a vertical line plot.
     - The x-axis is reversed (100 to -100).
     - The line is thicker at the top and thinner at the bottom.
-    - Horizontal dashed black lines are drawn at y-values corresponding to the number of last matches in tournament for each player:
+    - Horizontal dashed lines are drawn at y-values corresponding to the number of last matches in tournament for each player:
         - For player1: line from x=0 to x=100.
         - For player2: line from x=-100 to x=0.
     - Player names are annotated at the top left and right.
@@ -371,7 +371,7 @@ def plot_prediction_differences(results, player1, player2, last_matches_in_tourn
                 type="line",
                 x0=x_range[0], x1=x_range[1],
                 y0=y_line + 0.5, y1=y_line + 0.5,
-                line=dict(color="black", width=2, dash="dash"),
+                line=dict(color="red", width=2, dash="dash"),
                 layer="above"
             )
 
