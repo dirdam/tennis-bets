@@ -106,7 +106,7 @@ def simulate_set(player1, player2, data):
         server = receiver
         if max(player1_games, player2_games) == 7: # If one player reaches 7 games, they win the set
             break
-    return {player1: player1_games, player2: player2_games}
+    return {player1: player1_games, player2: player2_games, 'next_server': receiver}  # Return the last receiver who will serve next
 
 def simulate_match(player1, player2, data, num_sets=3, verbose=False):
     '''Simulate a match between player1 and player2. Returns the number of sets won by each player.'''
@@ -125,9 +125,9 @@ def simulate_match(player1, player2, data, num_sets=3, verbose=False):
         else:
             player2_sets += 1
         # Track total games played
-        total_games += sum(set_result.values())
+        total_games += set_result[player1] + set_result[player2]
         # Switch server
-        server = receiver
+        server = set_result['next_server']
     return {player1: player1_sets, player2: player2_sets, 'total_games': total_games}
 
 def simulate_monte_carlo(player1, player2, recent_data, num_sets, num_matches=10000, st_progress=True):
@@ -309,9 +309,10 @@ def calculate_prediction_differences(results):
 def get_last_matches_in_tournament(matches_df, player1, player2):
     """Returns the number of matches each player played in the last tournament they took part in."""
     last_matches = {}
-    players_df = matches_df.copy()
-    players_df['date'] = players_df['date'].apply(lambda x: pd.to_datetime(str(x), format='%Y%m%d', errors='coerce'))
+    matches_df_copy = matches_df.copy()
+    matches_df_copy['date'] = matches_df_copy['date'].apply(lambda x: pd.to_datetime(str(x), format='%Y%m%d', errors='coerce'))
     for player in [player1, player2]:
+        players_df = matches_df_copy.copy()
         player_df = players_df[((players_df['winner'] == player) | (players_df['loser'] == player))]
         last_tournament = player_df['tournament'].iloc[0]
         last_tournament_date = player_df['date'].iloc[0]
