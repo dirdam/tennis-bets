@@ -124,8 +124,9 @@ def main():
         st.markdown(f"### Winning probabilities differences for the last {past_matches_to_consider} matches")
         last_matches_in_tournament = utils.get_last_matches_in_tournament(matches_df, player1, player2)
         utils.plot_prediction_differences(st.session_state['results'], player1, player2, last_matches_in_tournament)
-        st.markdown(f"Choose the number of last matches to consider:")
+        # utils.plot_total_sets_distribution(st.session_state['results'])
 
+        st.markdown(f"Choose the number of last matches to consider:")
         # Select how many matches to consider with tabs
         tabs = st.tabs([f"❨ {i + 1} ❩" for i in range(past_matches_to_consider)])
 

@@ -249,6 +249,18 @@ def plot_sets_distribution(sets_distribution, key=None):
     )
     st.plotly_chart(fig, use_container_width=True, key=key)
 
+def plot_total_sets_distribution(results, key=None):
+    """Plots the total sets distribution from the results of simulated matches."""
+    total_sets_distribution = {}
+    for i in range(1, len(results) + 1):
+        sets_distribution = results[i]['sets_distribution']
+        for sets, count in sets_distribution.items():
+            if sets not in total_sets_distribution:
+                total_sets_distribution[sets] = count
+            else:
+                total_sets_distribution[sets] += count
+    plot_sets_distribution(total_sets_distribution, key=key)
+
 def plot_games_count(games_count, key=None):
     """Plots the distribution of total games played in simulated matches using Plotly and Streamlit, with vertical lines for mean and median."""
     x_vals = list(games_count.keys())
@@ -306,6 +318,21 @@ def calculate_prediction_differences(results):
         diff.append(results[i]['player1_wins_percent'] - results[i]['player2_wins_percent'])
     return diff
 
+def calculate_best_odds(results):
+    """Calculates the best odds for each simulation based on the win percentages of two players."""
+    best_odds = []
+    for i in range(1, len(results) + 1):
+        # Sort "sets_distribution" by descending value, and get the key with the highest value
+        sets_distribution = results[i]['sets_distribution']
+        sorted_sets = sorted(sets_distribution.items(), key=lambda x: x[1], reverse=True)
+        best_set = sorted_sets[0][0]
+        # See if best odd (2-0 or 0-2)
+        if '0' in best_set:
+            best_odds.append(True)
+        else:
+            best_odds.append(False)
+    return best_odds
+
 def get_last_matches_in_tournament(matches_df, player1, player2):
     """Returns the number of matches each player played in the last tournament they took part in."""
     last_matches = {}
@@ -335,7 +362,8 @@ def plot_prediction_differences(results, player1, player2, last_matches_in_tourn
         - For player2: line from x=-100 to x=0.
     - Player names are annotated at the top left and right.
     """
-    prediction_differences = calculate_prediction_differences(results)
+    prediction_differences = calculate_prediction_differences(results) # Difference between player1 and player2 win percentages
+    best_odds = calculate_best_odds(results) # True if best odd is 2-0 or 0-2, False otherwise
     y_vals = list(range(1, len(prediction_differences) + 1))
     max_width, min_width = 8, 2
     n = len(y_vals)
@@ -343,7 +371,24 @@ def plot_prediction_differences(results, player1, player2, last_matches_in_tourn
 
     fig = go.Figure()
 
-    # Draw the difference lines with variable thickness and color
+    # Draw filled golden circles for best_odds at the back
+    for i, is_best in enumerate(best_odds):
+        if is_best:
+            fig.add_trace(go.Scatter(
+                x=[prediction_differences[i]],
+                y=[y_vals[i]],
+                mode='markers',
+                marker=dict(
+                    size=widths[i] + 10,  # Slightly larger than the line width
+                    color='gold',
+                    line=dict(color='goldenrod', width=3)
+                ),
+                showlegend=False,
+                hoverinfo='skip',
+                opacity=0.7
+            ))
+
+    # Draw the difference lines with variable thickness and color (on top of circles)
     for i in range(1, n):
         color = player1_color if prediction_differences[i-1] >= 0 else player2_color
         fig.add_trace(go.Scatter(
