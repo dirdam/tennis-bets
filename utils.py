@@ -327,10 +327,12 @@ def calculate_best_odds(results):
         sorted_sets = sorted(sets_distribution.items(), key=lambda x: x[1], reverse=True)
         best_set = sorted_sets[0][0]
         # See if best odd (2-0 or 0-2)
-        if '0' in best_set:
-            best_odds.append(True)
+        if '-0' in best_set:
+            best_odds.append(1)
+        elif '0-' in best_set:
+            best_odds.append(-1)
         else:
-            best_odds.append(False)
+            best_odds.append(0)
     return best_odds
 
 def get_last_matches_in_tournament(matches_df, player1, player2):
@@ -361,9 +363,13 @@ def plot_prediction_differences(results, player1, player2, last_matches_in_tourn
         - For player1: line from x=0 to x=100.
         - For player2: line from x=-100 to x=0.
     - Player names are annotated at the top left and right.
+    - Adds a "0" value at the top of the y-axis, placed at pred_diffs_mean, colored by corresponding player, with a thin line to value at "1".
     """
-    prediction_differences = calculate_prediction_differences(results) # Difference between player1 and player2 win percentages
-    best_odds = calculate_best_odds(results) # True if best odd is 2-0 or 0-2, False otherwise
+    prediction_differences = calculate_prediction_differences(results)  # Difference between player1 and player2 win %
+    pred_diffs_std = np.std(prediction_differences)
+    pred_diffs_mean = np.mean(prediction_differences)
+    best_odds = calculate_best_odds(results)  # 1 if X-0, -1 if 0-X, else 0 (for every intermediate result)
+
     y_vals = list(range(1, len(prediction_differences) + 1))
     max_width, min_width = 8, 2
     n = len(y_vals)
@@ -371,24 +377,35 @@ def plot_prediction_differences(results, player1, player2, last_matches_in_tourn
 
     fig = go.Figure()
 
-    # Draw filled golden circles for best_odds at the back
-    for i, is_best in enumerate(best_odds):
-        if is_best:
+    # Filled golden circles for best_odds (behind per-point markers but still markers)
+    for i, best_odd in enumerate(best_odds):
+        if abs(best_odd) == 1:
             fig.add_trace(go.Scatter(
                 x=[prediction_differences[i]],
                 y=[y_vals[i]],
                 mode='markers',
                 marker=dict(
-                    size=widths[i] + 10,  # Slightly larger than the line width
+                    size=widths[i] + 10,
                     color='gold',
                     line=dict(color='goldenrod', width=3)
                 ),
-                showlegend=False,
+                opacity=0.7,
                 hoverinfo='skip',
-                opacity=0.7
+                showlegend=False
             ))
 
-    # Draw the difference lines with variable thickness and color (on top of circles)
+    # Thin dashed connector from (mean, 0) to (first point, 1)
+    top_color = player1_color if pred_diffs_mean >= 0 else player2_color
+    fig.add_trace(go.Scatter(
+        x=[pred_diffs_mean, prediction_differences[0]],
+        y=[0, 1],
+        mode='lines',
+        line=dict(color=top_color, width=min_width, dash='dash'),
+        hoverinfo='skip',
+        showlegend=False
+    ))
+
+    # Variable-thickness difference lines (colored per sign)
     for i in range(1, n):
         color = player1_color if prediction_differences[i-1] >= 0 else player2_color
         fig.add_trace(go.Scatter(
@@ -396,56 +413,130 @@ def plot_prediction_differences(results, player1, player2, last_matches_in_tourn
             y=y_vals[i-1:i+1],
             mode='lines',
             line=dict(color=color, width=widths[i-1]),
+            hoverinfo='skip',
             showlegend=False
         ))
 
-    # Add markers for each point
+    # Bracket at y=0: green baseline (mean ± std)
+    fig.add_trace(go.Scatter(
+        x=[pred_diffs_mean - pred_diffs_std, pred_diffs_mean + pred_diffs_std],
+        y=[0, 0],
+        mode='lines',
+        line=dict(color='green', width=2),
+        hoverinfo='skip',
+        showlegend=False
+    ))
+
+    # Golden overlays at y=0 (extent scales with |mean(best_odds)|)
+    extent = pred_diffs_std * abs(np.mean(best_odds))
+    fig.add_trace(go.Scatter(
+        x=[pred_diffs_mean - extent, pred_diffs_mean + extent],
+        y=[0, 0],
+        mode='lines',
+        line=dict(color='goldenrod', width=6),
+        hoverinfo='skip',
+        showlegend=False
+    ))
+    fig.add_trace(go.Scatter(
+        x=[pred_diffs_mean - extent + 1, pred_diffs_mean + extent - 1],
+        y=[0, 0],
+        mode='lines',
+        line=dict(color='gold', width=2),
+        hoverinfo='skip',
+        showlegend=False
+    ))
+
+    # Vertical green bracket ticks at the edges
+    bh = 0.5
+    for x_tick in [pred_diffs_mean - pred_diffs_std, pred_diffs_mean + pred_diffs_std]:
+        fig.add_trace(go.Scatter(
+            x=[x_tick, x_tick],
+            y=[0 - bh/2, 0 + bh/2],
+            mode='lines',
+            line=dict(color='green', width=2),
+            hoverinfo='skip',
+            showlegend=False
+        ))
+
+    # Horizontal dashed lines for last_matches_in_tournament (player-specific ranges)
+    for player, x_range in [(player1, (0, 100)), (player2, (-100, 0))]:
+        y_line = last_matches_in_tournament.get(player)
+        if y_line is not None:
+            fig.add_trace(go.Scatter(
+                x=[x_range[0], x_range[1]],
+                y=[y_line + 0.5, y_line + 0.5],
+                mode='lines',
+                line=dict(color='red', width=2, dash='dash'),
+                hoverinfo='skip',
+                showlegend=False
+            ))
+
+    # -------------------
+    # TOP LAYER: markers
+    # -------------------
+
+    # Big "0" marker at y=0 (main prediction)
+    fig.add_trace(go.Scatter(
+        x=[pred_diffs_mean],
+        y=[0],
+        mode='markers',
+        marker=dict(size=max_width + 2, color=top_color),
+        hoverinfo='skip',
+        showlegend=False
+    ))
+
+    # Per-point markers
     marker_colors = [player1_color if diff >= 0 else player2_color for diff in prediction_differences]
     fig.add_trace(go.Scatter(
         x=prediction_differences,
         y=y_vals,
         mode='markers',
         marker=dict(size=widths, color=marker_colors),
+        hoverinfo='skip',
         showlegend=False
     ))
 
-    # Draw horizontal dashed lines for last_matches_in_tournament
-    for player, x_range in [(player1, (0, 100)), (player2, (-100, 0))]:
-        y_line = last_matches_in_tournament.get(player)
-        if y_line is not None:
-            fig.add_shape(
-                type="line",
-                x0=x_range[0], x1=x_range[1],
-                y0=y_line + 0.5, y1=y_line + 0.5,
-                line=dict(color="red", width=2, dash="dash"),
-                layer="above"
-            )
-
-    # Add player name annotations
-    fig.add_annotation(
-        x=100, y=1, text=f"<b>{player1}</b>", showarrow=False, xanchor='left', yanchor='bottom', font=dict(size=14, color=player1_color)
-    )
-    fig.add_annotation(
-        x=-100, y=1, text=f"<b>{player2}</b>", showarrow=False, xanchor='right', yanchor='bottom', font=dict(size=14, color=player2_color)
-    )
-
+    # -----------------
+    # Layout & styling
+    # -----------------
     fig.update_layout(
         title="Prediction differences",
         yaxis_title="Number of matches considered",
         xaxis_title="Win percentage difference",
-        yaxis=dict(dtick=1, autorange='reversed'),
-        xaxis=dict(
-            range=[100, -100],
-            tickvals=[100, 75, 50, 25, 0, -25, -50, -75, -100],
-            zeroline=True,
-            zerolinewidth=2,
-            zerolinecolor='lightgray',
-            showgrid=True,
-            gridcolor='lightgray',
-            griddash='dash'
-        ),
         plot_bgcolor='rgba(0,0,0,0)'
     )
+
+    fig.update_xaxes(
+        range=[100, -100],
+        tickvals=[100, 75, 50, 25, 0, -25, -50, -75, -100],
+        zeroline=True,
+        zerolinewidth=2,
+        zerolinecolor='lightgray',
+        showgrid=True,
+        gridcolor='rgba(211,211,211,0.5)',  # lightgray with 0.5 transparency
+        griddash='dash'
+    )
+    fig.update_yaxes(
+        dtick=1,
+        autorange='reversed',
+        zeroline=False,
+        showgrid=True,
+        gridcolor='rgba(211,211,211,0.5)',  # lightgray with 0.5 transparency
+        griddash='solid'
+    )
+
+    # Player name annotations
+    fig.add_annotation(
+        x=100, y=0.5, text=f"<b>{player1}</b>",
+        showarrow=False, xanchor='left', yanchor='bottom',
+        font=dict(size=14, color=player1_color)
+    )
+    fig.add_annotation(
+        x=-100, y=0.5, text=f"<b>{player2}</b>",
+        showarrow=False, xanchor='right', yanchor='bottom',
+        font=dict(size=14, color=player2_color)
+    )
+
     st.plotly_chart(fig, use_container_width=True)
 
 def get_last_matches(matches_df, player1, player2):
