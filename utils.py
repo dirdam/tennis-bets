@@ -427,31 +427,32 @@ def plot_prediction_differences(results, player1, player2, last_matches_in_tourn
         showlegend=False
     ))
 
-    # Golden overlays at y=0 (extent scales with |mean(best_odds)|)
-    extent = pred_diffs_std * abs(np.mean(best_odds))
-    fig.add_trace(go.Scatter(
-        x=[pred_diffs_mean - extent, pred_diffs_mean + extent],
-        y=[0, 0],
-        mode='lines',
-        line=dict(color='goldenrod', width=6),
-        hoverinfo='skip',
-        showlegend=False
-    ))
-    fig.add_trace(go.Scatter(
-        x=[pred_diffs_mean - extent + 1, pred_diffs_mean + extent - 1],
-        y=[0, 0],
-        mode='lines',
-        line=dict(color='gold', width=2),
-        hoverinfo='skip',
-        showlegend=False
-    ))
+    # Golden overlays at y=0 (bar_length scales with |mean(best_odds)|)
+    if abs(np.mean(best_odds)) == 1:
+        bar_length = pred_diffs_std * abs(np.mean(best_odds))
+        fig.add_trace(go.Scatter(
+            x=[pred_diffs_mean - bar_length, pred_diffs_mean + bar_length],
+            y=[0, 0],
+            mode='lines',
+            line=dict(color='goldenrod', width=6),
+            hoverinfo='skip',
+            showlegend=False
+        ))
+        fig.add_trace(go.Scatter(
+            x=[pred_diffs_mean - bar_length + 1, pred_diffs_mean + bar_length - 1],
+            y=[0, 0],
+            mode='lines',
+            line=dict(color='gold', width=2),
+            hoverinfo='skip',
+            showlegend=False
+        ))
 
     # Vertical green bracket ticks at the edges
-    bh = 0.5
+    bar_height = 0.5
     for x_tick in [pred_diffs_mean - pred_diffs_std, pred_diffs_mean + pred_diffs_std]:
         fig.add_trace(go.Scatter(
             x=[x_tick, x_tick],
-            y=[0 - bh/2, 0 + bh/2],
+            y=[0 - bar_height/2, 0 + bar_height/2],
             mode='lines',
             line=dict(color='green', width=2),
             hoverinfo='skip',
