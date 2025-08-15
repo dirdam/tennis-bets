@@ -527,12 +527,12 @@ def plot_prediction_differences(results, player1, player2, last_matches_in_tourn
 
     # Player name annotations
     fig.add_annotation(
-        x=100, y=0.5, text=f"<b>{player1}</b>",
+        x=100, y=0, text=f"<b>{player1}</b>",
         showarrow=False, xanchor='left', yanchor='bottom',
         font=dict(size=14, color=player1_color)
     )
     fig.add_annotation(
-        x=-100, y=0.5, text=f"<b>{player2}</b>",
+        x=-100, y=0, text=f"<b>{player2}</b>",
         showarrow=False, xanchor='right', yanchor='bottom',
         font=dict(size=14, color=player2_color)
     )
